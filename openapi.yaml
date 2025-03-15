@@ -1,0 +1,75 @@
+openapi: 3.1.0
+info:
+  title: Lore GPT API
+  description: API pour interagir avec Notion et Google Sheets via GPT-4
+  version: 1.0.0
+servers:
+  - url: https://ton-api.onrender.com
+paths:
+  /gpt/generate:
+    post:
+      summary: Générer un texte avec GPT-4
+      operationId: generateText
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prompt:
+                  type: string
+                  example: "Génère une quête RPG sur un temple oublié"
+      responses:
+        "200":
+          description: Texte généré
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generated_text:
+                    type: string
+  /gpt/generate_to_notion:
+    post:
+      summary: Générer un texte et l'ajouter à une page Notion
+      operationId: generateAndAddToNotion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page_id:
+                  type: string
+                  example: "1b1d9062c346806b9753f5430bced77f"
+                prompt:
+                  type: string
+                  example: "Génère une description épique pour une quête de RPG"
+      responses:
+        "200":
+          description: Texte ajouté à Notion
+  /gpt/generate_to_sheets:
+    post:
+      summary: Générer un texte et l'ajouter dans une cellule Google Sheets
+      operationId: generateAndAddToSheets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sheet_name:
+                  type: string
+                  example: "DT_Quests"
+                cell:
+                  type: string
+                  example: "A2"
+                prompt:
+                  type: string
+                  example: "Génère un nom de quête mystérieuse"
+      responses:
+        "200":
+          description: Texte ajouté à Google Sheets
