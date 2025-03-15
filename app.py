@@ -13,7 +13,16 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NOTION_API_KEY = "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"
 DATABASE_ID = "1b1d9062c346806b9753f5430bced77f"
 SPREADSHEET_ID = "1NdKKbrvl10vZ1lwXYAUYlhhTTJq8wiedJzsE0-6F8I4"
-SERVICE_ACCOUNT_FILE = "credentials.json"
+import json
+import os
+
+credentials_json = os.getenv("GOOGLE_CREDENTIALS")
+if credentials_json:
+    creds_dict = json.loads(credentials_json)
+    creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+else:
+    raise ValueError("Les identifiants Google Sheets ne sont pas définis.")
+
 
 # 🔹 Initialisation FastAPI
 app = FastAPI()
