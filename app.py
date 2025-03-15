@@ -6,16 +6,18 @@ from notion_client import Client
 import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-
-# 🔹 Clés API
 import os
+
+# 🔹 Clés API (via variables d'environnement)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-NOTION_API_KEY = "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"
+NOTION_API_KEY = os.getenv("NOTION_API_KEY")  # Mieux vaut stocker en variable d'env
 DATABASE_ID = "1b1d9062c346806b9753f5430bced77f"
 SPREADSHEET_ID = "1NdKKbrvl10vZ1lwXYAUYlhhTTJq8wiedJzsE0-6F8I4"
-import json
-import os
 
+# 🔹 Définition des SCOPES Google API
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+
+# 🔹 Chargement des Credentials Google Sheets depuis Render
 credentials_json = os.getenv("GOOGLE_CREDENTIALS")
 if credentials_json:
     creds_dict = json.loads(credentials_json)
@@ -23,23 +25,19 @@ if credentials_json:
 else:
     raise ValueError("Les identifiants Google Sheets ne sont pas définis.")
 
-
 # 🔹 Initialisation FastAPI
 app = FastAPI()
 
 # 🔹 Connexion Notion
 notion = Client(auth=NOTION_API_KEY)
 
-# 🔹 Connexion Google Services (Sheets + Drive)
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
-# 🔹 Google API Services
+# 🔹 Connexion Google API Services (Sheets + Drive)
 sheets_service = build("sheets", "v4", credentials=creds)
 drive_service = build("drive", "v3", credentials=creds)
 
 # 🔹 Configuration API OpenAI
 openai.api_key = OPENAI_API_KEY
+
 
 # ===================== NOTION ===================== #
 @app.get("/notion/page/{page_id}")
