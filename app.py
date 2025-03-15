@@ -144,13 +144,18 @@ class UpdateNotionRequest(BaseModel):
 
 @app.post("/gpt/generate_to_notion")
 def generate_and_update_notion(request: UpdateNotionRequest):
+    """
+    Génère du texte avec GPT-4 et l'ajoute à une page Notion.
+    """
     try:
+        # Générer du texte avec GPT-4
         response = openai_client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": request.prompt}]
         )
         generated_text = response.choices[0].message.content
 
+        # Construire la requête pour Notion
         url = f"https://api.notion.com/v1/blocks/{request.page_id}/children"
         headers = {
             "Authorization": f"Bearer {NOTION_API_KEY}",
@@ -175,7 +180,15 @@ def generate_and_update_notion(request: UpdateNotionRequest):
                 }
             ]
         }
+
+        # 🔹 DEBUG : Voir la requête envoyée à Notion
+        print("Requête envoyée à Notion:", json.dumps(data, indent=4))
+
+        # Envoyer la requête PATCH à Notion
         notion_response = requests.patch(url, headers=headers, json=data)
+
+        # 🔹 DEBUG : Voir la réponse de Notion
+        print("Réponse de Notion:", notion_response.json())
 
         if notion_response.status_code == 200:
             return {"message": "Texte généré et ajouté à Notion", "content": generated_text}
