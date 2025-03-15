@@ -149,3 +149,68 @@ def update_google_sheet(sheet_name: str, cell: str, new_value: str):
         return {"message": f"✅ Cellule {cell} de {sheet_name} mise à jour avec {new_value}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur Google Sheets: {str(e)}")
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+@app.post("/gpt/generate_to_notion", operation_id="generate_notion_content")
+def generate_and_update_notion(request: UpdateNotionRequest):
+    """
+    Génère du texte avec GPT-4 et l'ajoute à une page Notion.
+    """
+    try:
+        # Générer du texte avec GPT-4
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": request.prompt}]
+        )
+        generated_text = response.choices[0].message.content
+
+        # Construire la requête pour Notion
+        url = f"https://api.notion.com/v1/blocks/{request.page_id}/children"
+        headers = {
+            "Authorization": f"Bearer {NOTION_API_KEY}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "children": [
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": generated_text
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        # Debugging : Voir les logs
+        logging.debug("📌 ENVOI À NOTION...")
+        logging.debug(f"➡️ URL: {url}")
+        logging.debug(f"➡️ Headers: {headers}")
+        logging.debug(f"➡️ Payload: {json.dumps(data, indent=4)}")
+
+        # Envoyer la requête POST à Notion
+        notion_response = requests.post(url, headers=headers, json=data)
+
+        # Debugging : Voir la réponse de Notion
+        logging.debug("📌 RÉPONSE NOTION:")
+        logging.debug(notion_response.json())
+
+        if notion_response.status_code == 200:
+            return {"message": "✅ Texte ajouté à Notion", "content": generated_text}
+        else:
+            logging.error(f"❌ Erreur Notion {notion_response.status_code}: {notion_response.json()}")
+            raise HTTPException(status_code=notion_response.status_code, detail=notion_response.json())
+
+    except Exception as e:
+        logging.error(f"❌ ERREUR : {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur : {str(e)}")
