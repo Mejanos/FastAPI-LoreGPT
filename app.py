@@ -197,3 +197,69 @@ def generate_and_update_notion(request: UpdateNotionRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur : {str(e)}")
+import logging
+
+# Activer les logs pour voir les erreurs dans Render
+logging.basicConfig(level=logging.DEBUG)
+
+@app.post("/gpt/generate_to_notion")
+def generate_and_update_notion(request: UpdateNotionRequest):
+    """
+    Génère du texte avec GPT-4 et l'ajoute à une page Notion.
+    """
+    try:
+        # Générer du texte avec GPT-4
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": request.prompt}]
+        )
+        generated_text = response.choices[0].message.content
+
+        # Construire la requête pour Notion
+        url = f"https://api.notion.com/v1/blocks/{request.page_id}/children"
+        headers = {
+            "Authorization": f"Bearer {NOTION_API_KEY}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "children": [
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": generated_text
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        # Debugging : Afficher les logs
+        logging.debug("Envoi de la requête à Notion...")
+        logging.debug(f"URL: {url}")
+        logging.debug(f"Headers: {headers}")
+        logging.debug(f"Payload: {json.dumps(data, indent=4)}")
+
+        # Envoyer la requête PATCH à Notion
+        notion_response = requests.patch(url, headers=headers, json=data)
+
+        # Debugging : Voir la réponse de Notion
+        logging.debug("Réponse Notion:")
+        logging.debug(notion_response.json())
+
+        if notion_response.status_code == 200:
+            return {"message": "Texte généré et ajouté à Notion", "content": generated_text}
+        else:
+            logging.error(f"Erreur Notion {notion_response.status_code}: {notion_response.json()}")
+            raise HTTPException(status_code=notion_response.status_code, detail=notion_response.json())
+
+    except Exception as e:
+        logging.error(f"Erreur : {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur : {str(e)}")
